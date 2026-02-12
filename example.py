@@ -23,7 +23,7 @@ results = TavilySearch("<TAVILY_API_KEY>").search(query)
 # Concatenate the search results as content
 content_data = results.summary
 for result in results.results:
-    content_data += "\n" + result.title + "\n" + result.page_content.content
+    content_data += "\n" + result.title + "\n" + result.snippet + "\n" + result.page_content.content
 
 # Print the length of the content
 print("Content length:", len(content_data))

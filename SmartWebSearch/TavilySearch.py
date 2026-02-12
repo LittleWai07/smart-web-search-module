@@ -15,8 +15,11 @@ from selenium.webdriver.chrome.options import Options
 import json, os, sys, shutil, re
 from markdownify import markdownify
 from tavily import TavilyClient
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from SmartWebSearch.Debugger import show_debug, create_debug_file
+
+if TYPE_CHECKING:
+    from SmartWebSearch.RAGTool import RAGTool, _KnowledgeBaseSet
 
 class _PageContent:
     """
@@ -61,7 +64,7 @@ class _SearchResult:
     """
     A class for managing search result.
     """
-    def __init__(self, id: int, title: str, url: str, snippet: str, score: float, page_content: _PageContent):
+    def __init__(self, id: int, title: str, url: str, snippet: str, score: float, page_content: _PageContent | None = None):
         """
         Initialize the _SearchResult object.
 
@@ -71,7 +74,7 @@ class _SearchResult:
             url (str): The URL of the search result.
             snippet (str): The snippet of the search result.
             score (float): The score of the search result.
-            page_content (_PageContent): The page content of the search result.
+            page_content (_PageContent | None) = None: The page content of the search result.
 
         Returns:
             None
@@ -82,7 +85,7 @@ class _SearchResult:
         self.url: str = url
         self.snippet: str = snippet
         self.score: float = score
-        self.page_content: _PageContent = page_content
+        self.page_content: _PageContent | None = page_content
 
     def __str__(self) -> str:
         """
@@ -92,7 +95,7 @@ class _SearchResult:
             str: The title of the search result.
         """
 
-        return f"_SearchResult(id={self.id}, title='{self.title}', url='{self.url}', snippet='{self.snippet[:50].replace('\n', '\\n')}...', score={self.score}, page_content=_PageContent(content='{self.page_content.content[:50].replace('\n', '\\n')}...', ...))"
+        return f"_SearchResult(id={self.id}, title='{self.title}', url='{self.url}', snippet='{self.snippet[:50].replace('\n', '\\n')}...', score={self.score}, page_content={f"_PageContent(content='{self.page_content.content[:50].replace('\n', '\\n')}...', ...)" if self.page_content else None})"
     
     def __repr__(self) -> str:
         """
@@ -102,7 +105,17 @@ class _SearchResult:
             str: The string representation of the _SearchResult object.
         """
 
-        return f"_SearchResult(id={self.id}, title='{self.title}', url='{self.url}', snippet='{self.snippet[:50].replace('\n', '\\n')}...', score={self.score}, page_content=_PageContent(content='{self.page_content.content[:50].replace('\n', '\\n')}...', ...))"
+        return self.__str__()
+
+    def to_str(self) -> str:
+        """
+        Return the title, and snippet of the page content.
+
+        Returns:
+            str: The title, and snippet of the page content.
+        """
+
+        return f"{self.title}\n{self.snippet}" + (f"\n{self.page_content.content}" if self.page_content else "")
 
 class _SearchResults:
     """
@@ -123,7 +136,6 @@ class _SearchResults:
 
         self.query: str = query
         self.summary: str = summary
-        self.results_count: int = len(results)
         self.results: list[_SearchResult] = results
 
     def __str__(self) -> str:
@@ -134,7 +146,7 @@ class _SearchResults:
             str: The summary of the search results.
         """
 
-        return f"_SearchResults(query='{self.query}', summary='{self.summary[:50]}...', results_count={self.results_count}, results=[{', '.join([f'_SearchResult(title={result.title}, ...)' for result in self.results])}])"
+        return f"_SearchResults(query='{self.query}', summary='{self.summary[:50]}...', results=[{', '.join([f'_SearchResult(title={result.title}, ...)' for result in self.results])}])"
     
     def __repr__(self) -> str:
         """
@@ -144,7 +156,190 @@ class _SearchResults:
             str: The string representation of the _SearchResults object.
         """
 
-        return f"_SearchResults(query='{self.query}', summary='{self.summary[:50]}...', results_count={self.results_count}, results=[{', '.join([f'_SearchResult(title={result.title}, ...)' for result in self.results])}])"
+        return self.__str__()
+    
+    def __len__(self) -> int:
+        """
+        Return the length of the search results.
+
+        Returns:
+            int: The length of the search results.
+        """
+
+        return len(self.results)
+    
+    def __getitem__(self, index: int) -> _SearchResult:
+        """
+        Return the search result at the given index.
+
+        Args:
+            index (int): The index of the search result.
+
+        Returns:
+            _SearchResult: The search result at the given index.
+        """
+
+        return self.results[index]
+
+    def to_str(self) -> str:
+        """
+        Return the summary and each result of the search results.
+
+        Returns:
+            str: The summary and each result of the search results.
+        """
+
+        return f"{self.summary}\n" + "\n".join([result.to_str() for result in self.results])
+
+class SearchResultsContainer:
+    """
+    A class for centralizing search results.
+    """
+
+    def __init__(self):
+        """
+        Initialize the SearchResultsContainer object.
+
+        Returns:
+            None
+        """
+
+        self.results: list[_SearchResult | _SearchResults] = []
+
+    def append(self, results: _SearchResult | _SearchResults | list[_SearchResult] | list[_SearchResults]) -> None:
+        """
+        Append search results to the container.
+
+        Args:
+            results (_SearchResult | _SearchResults | list[_SearchResult] | list[_SearchResults]): The search results to append.
+
+        Returns:
+            None
+        """
+
+        # Check if results is a list
+        if isinstance(results, list):
+            for result in results:
+                # Check if result is a _SearchResult or _SearchResults
+                if isinstance(result, _SearchResult):
+                    # Check if result is a _SearchResult
+                    self.results.append(result)
+
+                elif isinstance(result, _SearchResults):
+                    # Check if result is a _SearchResults
+                    self.results.append(result)
+
+                else:
+                    # Otherwise, raise a TypeError
+                    raise TypeError(f"Expected _SearchResult or _SearchResults, got {type(result)}")
+        
+        elif isinstance(results, _SearchResult):
+            # Check if results is a _SearchResult
+            self.results.append(results)
+
+        elif isinstance(results, _SearchResults):
+            # Check if results is a _SearchResults
+            self.results.append(results)
+
+        else:
+            # Otherwise, raise a TypeError
+            raise TypeError(f"Expected _SearchResult or _SearchResults, got {type(results)}")
+        
+    def __list(self):
+        """
+        Return the list of search results.
+
+        Returns:
+            list[_SearchResult]: The list of search results.
+        """
+
+        results: list[_SearchResult] = []
+
+        for result in self.results:
+            if isinstance(result, _SearchResults):
+                results.extend(result.results)
+            else:
+                results.append(result)
+
+        return results
+        
+    def __str__(self):
+        """
+        Return the summary and each result of the search results.
+
+        Returns:
+            str: The summary and each result of the search results.
+        """
+
+        return f"SearchResultsContainer(results=[{', '.join([f'_SearchResult(title={result.title[:50]}, ...)' for result in self.__list()])}])"
+    
+    def __repr__(self):
+        """
+        Return the string representation of the SearchResultsContainer object.
+
+        Returns:
+            str: The string representation of the SearchResultsContainer object.
+        """
+
+        return self.__str__()
+    
+    def __len__(self):
+        """
+        Return the length of the search results.
+
+        Returns:
+            int: The length of the search results.
+        """
+
+        length: int = 0
+
+        for result in self.results:
+            if isinstance(result, _SearchResults):
+                length += len(result)
+            else:
+                length += 1
+
+        return length
+    
+    def __getitem__(self, index):
+        """
+        Return the search result at the given index.
+
+        Args:
+            index (int): The index of the search result.
+
+        Returns:
+            _SearchResult: The search result at the given index.
+        """
+
+        return self.__list()[index]
+        
+    def to_str(self) -> str:
+        """
+        Return the summary and each result of the search results.
+
+        Returns:
+            str: The summary and each result of the search results.
+        """
+
+        return "\n".join([result.to_str() for result in self.results])
+    
+    def to_rag(self, rag_tool: "RAGTool") -> "_KnowledgeBaseSet":
+        """
+        Return the RAGTool object.
+
+        Args:
+            rag_tool (RAGTool): The RAGTool object.
+
+        Returns:
+            _KnowledgeBaseSet: The knowledge base set.
+        """
+
+        # Build the knowledge base
+        kl_base_set: _KnowledgeBaseSet = rag_tool.build_knowledge(self.to_str())
+
+        # Return the RAGTool object and the knowledge base set
+        return kl_base_set
 
 class InvalidParameterError(Exception):
     """
@@ -187,13 +382,14 @@ class TavilySearch:
         # Set the API key
         self.api_key: str = api_key
 
-    def __search(self, query: str, max_results: int = 10) -> _SearchResults:
+    def __search(self, query: str, max_results: int = 10, include_page_content: bool = True) -> _SearchResults:
         """
         Search for a query using Tavily API.
 
         Args:
             query (str): The search query.
             max_results (int) = 10: The maximum number of results to return.
+            include_page_content (bool) = True: Whether to include page content.
 
         Returns:
             _SearchResults: The search results.
@@ -241,6 +437,7 @@ class TavilySearch:
             "stackoverflow.com",
             "soundcloud.com",
             "sap.com",
+            "ebay.com",
             "ad.",
             "nav.",
             "tool.",
@@ -295,7 +492,7 @@ class TavilySearch:
                         queries = query.replace(' ', '+').split("+"), # The queries to find on the page
                         idx = idx, # The index of the current result
                         total_results = len(results["results"]) # The total number of results
-                    )
+                    ) if include_page_content else None
                 )
                 for idx, result in enumerate(results["results"], start = 1)
             ]
@@ -353,7 +550,7 @@ class TavilySearch:
         parsed_html: str = ""
 
         # Remove all unnecessary tags
-        unnecessary_tags: list[str] = ["script", "style", "link", "meta", "nav", "header", "footer", "aside", "img", "button", "form", "input", "svg", "canvas", "figure", "select"]
+        unnecessary_tags: list[str] = ["script", "style", "link", "meta", "nav", "header", "footer", "aside", "img", "button", "form", "input", "svg", "canvas", "figure", "select", "checkbox", "label"]
         for tag in unnecessary_tags:
             for element in soup.find_all(tag):
                 element.decompose()
@@ -389,7 +586,9 @@ class TavilySearch:
             "cookie",
             "awsccc",
             "menu",
-            "footer"
+            "footer",
+            "region-container",
+            "region-list"
         ]
 
         for element in soup.find_all():
@@ -424,7 +623,7 @@ class TavilySearch:
                 if keyword in parsed_markdown.lower():
 
                     show_debug(f"Found invalid keyword '{keyword}' (appeared {parsed_markdown.lower().count(keyword)} times) in parsed content from URL {idx}/{total_results}: {url}")
-                    show_debug(f"Entire parsed content from URL {idx}/{total_results}: {parsed_markdown}")
+                    show_debug(f"Entire parsed content from URL {idx}/{total_results}: {parsed_markdown.replace("\n", "\\n")}")
 
                     # Remove the parsed markdown
                     parsed_markdown = ""
@@ -433,7 +632,7 @@ class TavilySearch:
         show_debug(f"Parsed content from URL {idx}/{total_results}: {url}")
 
         create_debug_file(
-            filename = f"parsed-content-{idx}",
+            filename = f"parsed-content",
             ext = "md",
             content = f"URL: {url}\n\n{parsed_markdown}"
         )
@@ -444,12 +643,13 @@ class TavilySearch:
             content = parsed_markdown
         )
 
-    def search(self, query: str) -> _SearchResults:
+    def search(self, query: str, include_page_content: bool = True) -> _SearchResults:
         """
         Search for a query using Tavily API.
 
         Args:
             query (str): The search query.
+            include_page_content (bool) = True: Whether to include page content.
 
         Returns:
             _SearchResults: The search results.
@@ -457,18 +657,20 @@ class TavilySearch:
 
         show_debug(f"Searching for query: {query.replace(' ', '+')}")
 
-        results: _SearchResults = self.__search(query.replace(' ', '+'), 15)
+        results: _SearchResults = self.__search(query.replace(' ', '+'), 15, include_page_content)
 
         # Return the search results
         return results
 
-    def search_d(self, query: str, extra_details: list[str] = []) -> list[_SearchResults]:
+    def search_d(self, query: str, extra_details: list[str] = [], include_page_content: bool = True, include_main_query: bool = False) -> list[_SearchResults]:
         """
         Search for a query using Tavily API with extra details.
 
         Args:
             query (str): The search query.
             extra_details (list[str]) = []: The list of extra details to include in the page content of the search results.
+            include_page_content (bool) = True: Whether to include page content.
+            include_main_query (bool) = False: Whether to include the main query in the page content of the search results.
 
         Returns:
             list[_SearchResults]: The search results.
@@ -478,14 +680,20 @@ class TavilySearch:
         if len(extra_details) == 0:
             raise InvalidParameterError("An empty list of extra details provided.")
 
-        # Search for a query using Tavily API
+        # Search for the queries using Tavily API
         results: list[_SearchResults] = []
+
+        # Search for the main query
+        if include_main_query:
+            results.append(self.__search(query.replace(' ', '+'), 15, include_page_content))
+
+        # Search for the extra details with the main query
         for detail in extra_details:
             current_query: str = f"{query.strip().replace(' ', '+')}+{detail.strip().replace(' ', '+')}"
 
             show_debug(f"Searching for query: {current_query.replace(' ', '+')}")
 
-            results.append(self.__search(current_query.replace(' ', '+')))
+            results.append(self.__search(current_query.replace(' ', '+'), 6, include_page_content))
 
         # Return the search results
         return results

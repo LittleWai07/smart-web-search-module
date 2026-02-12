@@ -7,6 +7,7 @@ This module implements the Debugger Tool for the package.
 
 # Import the required modules
 import json, os, sys, shutil, re
+import datetime
 from typing import Any, TypeAlias, Literal
 
 # Type Alias
@@ -87,8 +88,8 @@ def create_debug_file(filename: str, ext: str, content: str) -> None:
         os.makedirs(os.path.dirname(filename), exist_ok = True)
 
     # Write the content to the file
-    with open(f"debug-{filename}.{ext}", "w", encoding = "utf-8") as f:
+    with open(f"debug-{filename}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.{ext}", "w", encoding = "utf-8") as f:
         f.write(content)
 
     # Show debug message
-    show_debug(f"Created debug file: 'debug-{filename}.{ext}', content length: {len(content)}", type = 'FILE')
+    show_debug(f"Created debug file: 'debug-{filename}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.{ext}', content length: {len(content)}", type = 'FILE')
