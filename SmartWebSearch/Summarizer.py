@@ -8,6 +8,7 @@ This module implements the Summarizer Tool for summerizing the search results.
 # Import the required modules
 import requests
 from typing import Any
+from SmartWebSearch.KeyCheck import KeyCheck
 
 # Summarizer Class
 class Summarizer:
@@ -66,6 +67,9 @@ class Summarizer:
         self.model: str = model
         self.openai_comp_api_key: str = openai_comp_api_key
         self.openai_comp_api_base_url: str = openai_comp_api_base_url
+
+        # Check the OpenAI Compatible API key
+        KeyCheck.check_openai_comp_api_key(openai_comp_api_key, model, openai_comp_api_base_url)
 
     def summarize(self, u_prompt: str, data: str) -> str:
         """

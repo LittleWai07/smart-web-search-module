@@ -8,6 +8,7 @@ This module implements the query brainstorm for the web searching module.
 # Import the required modules
 from typing import Any
 import requests
+from SmartWebSearch.KeyCheck import KeyCheck
 
 # QueryStorm Class
 class QueryStorm:
@@ -65,6 +66,9 @@ class QueryStorm:
         self.model: str = model
         self.openai_comp_api_key: str = openai_comp_api_key
         self.openai_comp_api_base_url: str = openai_comp_api_base_url
+
+        # Check the OpenAI Compatible API key
+        KeyCheck.check_openai_comp_api_key(openai_comp_api_key, model, openai_comp_api_base_url)
 
     def storm_with_summary(self, prompt: str, summary: str) -> list[str]:
         """

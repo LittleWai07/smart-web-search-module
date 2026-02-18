@@ -11,6 +11,7 @@ from SmartWebSearch.RAGTool import RAGTool, _KnowledgeBaseSet, _KnowledgeBase
 from SmartWebSearch.Summarizer import Summarizer
 from SmartWebSearch.QueryStorm import QueryStorm
 from SmartWebSearch.Debugger import DebuggerConfiguration
+from SmartWebSearch.KeyCheck import KeyCheck, InvalidKeyError
 
 # Set the debugging mode
 DebuggerConfiguration.DEBUGGING = True
@@ -131,9 +132,10 @@ class SmartWebSearch:
         summary = results.summary
         src.append(results)
 
-        # Search with auxiliary queries
-        results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries)
-        src.append(results)
+        if a_queries:
+            # Search with auxiliary queries
+            results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries)
+            src.append(results)
 
         # If the length of the search results content less than 80000, generate more queries with the summary
         if len(src.to_str(False)) < 80000:

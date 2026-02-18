@@ -13,6 +13,7 @@ from tavily import TavilyClient
 from typing import Any, TYPE_CHECKING
 from SmartWebSearch.Debugger import show_debug, create_debug_file
 from SmartWebSearch.ChromeDriver import ChromeDriver
+from SmartWebSearch.KeyCheck import KeyCheck
 
 if TYPE_CHECKING:
     from SmartWebSearch.RAGTool import RAGTool, _KnowledgeBaseSet
@@ -428,6 +429,9 @@ class TavilySearch:
         Returns:
             None
         """
+
+        # Check the API key
+        KeyCheck.check_tavily_api_key(api_key)
         
         # Initialize the TavilyClient object
         self.client: TavilyClient = TavilyClient(api_key)

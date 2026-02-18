@@ -3,3 +3,4 @@ test.json
 /SmartWebSearch/__pycache__
 debug-*
 test.ipynb
+server.py
