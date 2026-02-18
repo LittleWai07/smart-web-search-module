@@ -757,6 +757,8 @@ class TavilySearch:
 
         # Search for the main query
         if include_main_query:
+            show_debug(f"Searching for query: {query.replace(' ', '+')}")
+
             results.append(self.__search(query.replace(' ', '+'), max_results_for_each, include_page_content))
 
         # Search for the auxiliary queries with the main query
