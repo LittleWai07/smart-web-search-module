@@ -30,7 +30,7 @@ class ChromeDriver:
         self.chrome_options.add_argument("--no-sandbox")
 
         self.driver: Chrome = Chrome(options = self.chrome_options)
-        self.driver.set_page_load_timeout(60)
+        self.driver.set_page_load_timeout(20)
 
     def quit(self) -> None:
         """

@@ -98,9 +98,6 @@ class SmartWebSearch:
             # Concatenate the summaries of the search results
             content = results.summary
 
-        # Quit the TavilySearch object
-        ts.quit()
-
         # Summerize the content
         return self.smr.summarize(prompt, content)
     
@@ -157,9 +154,6 @@ class SmartWebSearch:
 
         # Generate conclusion
         conclusion = self.smr.summarize(prompt, "\n".join(src.get_summaries() + [match[1] for match in matches]))
-
-        # Quit the TavilySearch object
-        ts.quit()
 
         # Return the conclusion
         return conclusion

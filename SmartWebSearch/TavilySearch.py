@@ -14,6 +14,8 @@ from typing import Any, TYPE_CHECKING
 from SmartWebSearch.Debugger import show_debug, create_debug_file
 from SmartWebSearch.ChromeDriver import ChromeDriver
 from SmartWebSearch.KeyCheck import KeyCheck
+from threading import Thread, active_count
+import time
 
 if TYPE_CHECKING:
     from SmartWebSearch.RAGTool import RAGTool, _KnowledgeBaseSet
@@ -436,12 +438,6 @@ class TavilySearch:
         # Initialize the TavilyClient object
         self.client: TavilyClient = TavilyClient(api_key)
 
-        # Initialize the ChromeDriver object
-        self.chrome_driver: ChromeDriver = ChromeDriver()
-
-        # Set the status of the TavilySearch object
-        self.status: bool = True
-
         # Set the API key
         self.api_key: str = api_key
 
@@ -457,9 +453,6 @@ class TavilySearch:
         Returns:
             _SearchResults: The search results.
         """
-
-        # Check the status of the TavilySearch object
-        if not self.status: raise InactiveError("TavilySearch object is not active.")
 
         # Search for a query using Tavily API
         results: dict[str, Any] = dict(
@@ -531,6 +524,7 @@ class TavilySearch:
             "t.cn",
             "bit.ly"
         ]
+
         tmp_results: list[dict[str, Any]] = results["results"]
         results["results"] = []
         for result in tmp_results:
@@ -541,70 +535,115 @@ class TavilySearch:
                 results["results"].append(result)
 
         show_debug(f"{len(results['results'])} results found for query: {query}")
-        show_debug(f"Summary for the results: {results['results']}", importance = "LOW")
+        show_debug(f"Summary for the results: {results['answer']}", importance = "LOW")
+
+        # Create a list to store search results
+        search_results: list[_SearchResult] = []
+
+        # Loop through the results
+        for idx, result in enumerate(results["results"], start = 1):
+            # Create a SearchResult object
+            search_result: _SearchResult = _SearchResult(
+                id = idx, # The id of the result
+                title = result["title"], # The title of the page
+                url = result["url"], # The url of the page
+                snippet = result["content"], # The snippet of the page
+                score = round(result["score"] * 100, 2), # The score of the result
+                page_content = _PageContent(
+                    url = result["url"], # The url of the page
+                    content = "" # The content of the page (an empty string now, it will be added later)
+                ) if include_page_content else None
+            )
+
+            # If page content is not included, skip parsing
+            if not include_page_content:
+                # Add the _SearchResult object to the search_results list
+                search_results.append(search_result)
+                continue
+
+            # Parse the page in threads
+            # The parse function will fetch the page content, and parse and filter it
+            # Then it will add the page content to the _SearchResult object
+            # Finally, it will add the _SearchResult object to the search_results list
+            thread: Thread = Thread(
+                target = self.__parse,
+                args = (
+                    search_result,
+                    search_results,
+                    len(results["results"])
+                )
+            )
+            thread.daemon = True
+
+            # Start the thread
+            thread.start()
+            
+            # If active threads are more than 5, wait for a second
+            # Prevent too many threads running at the same time
+            while active_count() > 5:
+                time.sleep(1)
+
+        # Wait for all threads to finish if page content is included
+        if include_page_content:
+            # Wait until all threads are done
+            while len(search_results) < len(results["results"]):
+                pass
+
+            show_debug(f"{len(search_results)} results parsed for query: {query}, total content length is {sum([ len(result.page_content.content) for result in search_results ])} characters")
 
         # Return the results
         return _SearchResults(
             query = query.replace(' ', '+'), # The query to search
             summary = results["answer"], # The summary
-            results = [
-                _SearchResult(
-                    id = idx, # The id of the result
-                    title = result["title"], # The title of the page
-                    url = result["url"], # The url of the page
-                    snippet = result["content"], # The snippet of the page
-                    score = round(result["score"] * 100, 2), # The score of the result
-                    page_content = self.__parse(
-                        url = result["url"], # The url of the page
-                        queries = query.replace(' ', '+').split("+"), # The queries to find on the page
-                        idx = idx, # The index of the current result
-                        total_results = len(results["results"]) # The total number of results
-                    ) if include_page_content else None
-                )
-                for idx, result in enumerate(results["results"], start = 1)
-            ]
+            results = search_results
         )
     
-    def __parse(self, url: str, queries: list[str] = [], idx: int = 0, total_results: int = 0) -> _PageContent:
+    def __parse(self, search_result: _SearchResult, search_results: list[_SearchResult], total_results: int = 0) -> None:
         """
-        Parse the content of a URL with HTML source.
+        Parse the page source, extract the page content, store it in the page_content attribute of the search result and append it to the list of search results.
 
         Args:
-            url (str): The URL to parse.
-            queries (list[str]) = []: The list of queries to search for.
-            score (float) = 0: The score of the search result.
-            idx (int) = 0: The index of the current result.
-            total_results (int) = 0: The total number of results.
+            search_result (_SearchResult): The search result.
+            search_results (list[_SearchResult]): The list of search results.
+            total_results (int): The total number of results.
 
         Returns:
-            _PageContent: The parsed content.
+            None
         """
 
-        # Check the status of the TavilySearch object
-        if not self.status: raise InactiveError("TavilySearch object is not active.")
+        # Create a chrome driver
+        chrome_driver: ChromeDriver = ChromeDriver()
 
         # Process the parsing task
-        show_debug(f"Processing parsing task for URL {idx}/{total_results}: {url}")
+        show_debug(f"Processing parsing task for URL: {search_result.url}", importance = "LOW")
 
         # Load the url in the browser
-        show_debug(f"Loading URL {idx}/{total_results}: {url}", importance = "LOW")
+        show_debug(f"Loading URL: {search_result.url}", importance = "LOW")
 
         # Load the URL
         try:
-            self.chrome_driver.driver.get(url)
+            chrome_driver.driver.get(search_result.url)
+
+            # Get the page source
+            page_source: str = chrome_driver.driver.page_source
         except Exception:
-            show_debug("Request timed out, returning empty content.", type = "ERROR")
-            return _PageContent(
-                url = url,
-                content = ""
-            )
+            show_debug(f"Request timed out, returning empty content: {search_result.url}", type = "ERROR")
 
-        show_debug(f"Fetched URL {idx}/{total_results}: {url}", importance = "LOW")
+            # Append the search result to the search results list
+            search_results.append(search_result)
 
-        # Get the page source
-        page_source: str = self.chrome_driver.driver.page_source
+            show_debug(f"Finished parsing task {len(search_results)}/{total_results}")
 
-        show_debug(f"Parsing content from URL {idx}/{total_results}: {url}", importance = "LOW")
+            # Return
+            return
+        
+        finally:
+            # Quit the ChromeDriver object
+            chrome_driver.quit()
+
+        show_debug(f"Fetched URL: {search_result.url}", importance = "LOW")
+
+        show_debug(f"Parsing content from URL: {search_result.url}", importance = "LOW")
 
         # Parse the page source with BeautifulSoup
         soup: BeautifulSoup = BeautifulSoup(page_source, "html.parser")
@@ -685,8 +724,8 @@ class TavilySearch:
             for keyword in ["javascript", "cookie", "human", "enable", "verify", "err", "error"]:
                 if keyword in parsed_markdown.lower():
 
-                    show_debug(f"Found invalid keyword '{keyword}' (appeared {parsed_markdown.lower().count(keyword)} times) in parsed content from URL {idx}/{total_results}: {url}", importance = "LOW")
-                    show_debug(f"Entire parsed content from URL {idx}/{total_results}: {parsed_markdown.replace("\n", "\\n")}", importance = "LOW")
+                    show_debug(f"Found invalid keyword '{keyword}' (appeared {parsed_markdown.lower().count(keyword)} times) in parsed content from URL: {search_result.url}", importance = "LOW")
+                    show_debug(f"Entire parsed content from URL ('{search_result.url}'): {parsed_markdown.replace("\n", "\\n")}", importance = "LOW")
 
                     # Remove the parsed markdown
                     parsed_markdown = ""
@@ -697,19 +736,21 @@ class TavilySearch:
             # Remove the parsed markdown
             parsed_markdown = ""
 
-        show_debug(f"Parsed content from URL {idx}/{total_results}: {url}, length: {len(parsed_markdown)}")
+        show_debug(f"Parsed content from URL: {search_result.url}, length: {len(parsed_markdown)}", importance = "LOW")
 
         create_debug_file(
             filename = f"parsed-content",
             ext = "md",
-            content = f"URL: {url}\n\n{parsed_markdown}"
+            content = f"URL: {search_result.url}\n\n{parsed_markdown}"
         )
 
-        # Return the parsed content
-        return _PageContent(
-            url = url,
-            content = parsed_markdown
-        )
+        # Set the page content to the parsed markdown
+        search_result.page_content.content = parsed_markdown
+        
+        # Append the search result to the search results list
+        search_results.append(search_result)
+
+        show_debug(f"Finished parsing task {len(search_results)}/{total_results}")
 
     def search(self, query: str, include_page_content: bool = True, max_results: int = 10) -> _SearchResults:
         """
@@ -723,9 +764,6 @@ class TavilySearch:
         Returns:
             _SearchResults: The search results.
         """
-
-        # Check the status of the TavilySearch object
-        if not self.status: raise InactiveError("TavilySearch object is not active.")
 
         show_debug(f"Searching for query: {query.replace(' ', '+')}")
 
@@ -748,9 +786,6 @@ class TavilySearch:
         Returns:
             list[_SearchResults]: The search results.
         """
-
-        # Check the status of the TavilySearch object
-        if not self.status: raise InactiveError("TavilySearch object is not active.")
 
         # Check if auxiliary queries are provided
         if len(aux_queries) == 0:
@@ -775,20 +810,3 @@ class TavilySearch:
 
         # Return the search results
         return results
-    
-    def quit(self) -> None:
-        """
-        Quit the TavilySearch object.
-
-        Returns:
-            None
-        """
-
-        # Check the status of the TavilySearch object
-        if not self.status: raise InactiveError("TavilySearch object is not active.")
-
-        # Set the status of the TavilySearch object to False
-        self.status = False
-
-        # Quit the ChromeDriver object
-        self.chrome_driver.quit()
