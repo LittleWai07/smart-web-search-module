@@ -150,7 +150,7 @@ class SmartWebSearch:
         # Match the queries with the knowledge base
         matches = []
         for a_query in total_aux_queries:
-            matches.extend(self.rag.match_knowledge(kb, f"{m_query} {a_query}", threshold_score = 0.6))
+            matches.extend(self.rag.match_knowledge(kb, f"{m_query} {a_query}", top_k = 15, threshold_score = 0.6))
 
         # Generate conclusion
         conclusion = self.smr.summarize(prompt, "\n".join(src.get_summaries() + [match[1] for match in matches]))

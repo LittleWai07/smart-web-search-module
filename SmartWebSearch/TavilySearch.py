@@ -598,55 +598,20 @@ class TavilySearch:
             results = search_results
         )
     
-    def __parse(self, search_result: _SearchResult, search_results: list[_SearchResult], total_results: int = 0) -> None:
+    def __filter(self, html_source: str, url: str) -> str:
         """
-        Parse the page source, extract the page content, store it in the page_content attribute of the search result and append it to the list of search results.
+        Parse and filter the page content.
 
         Args:
-            search_result (_SearchResult): The search result.
-            search_results (list[_SearchResult]): The list of search results.
-            total_results (int): The total number of results.
+            html_source (str): The page source.
+            url (str): The url of the page.
 
         Returns:
-            None
+            str: The filtered page content.
         """
 
-        # Create a chrome driver
-        chrome_driver: ChromeDriver = ChromeDriver()
-
-        # Process the parsing task
-        show_debug(f"Processing parsing task for URL: {search_result.url}", importance = "LOW")
-
-        # Load the url in the browser
-        show_debug(f"Loading URL: {search_result.url}", importance = "LOW")
-
-        # Load the URL
-        try:
-            chrome_driver.driver.get(search_result.url)
-
-            # Get the page source
-            page_source: str = chrome_driver.driver.page_source
-        except Exception:
-            show_debug(f"Request timed out, returning empty content: {search_result.url}", type = "ERROR")
-
-            # Append the search result to the search results list
-            search_results.append(search_result)
-
-            show_debug(f"Finished parsing task {len(search_results)}/{total_results}")
-
-            # Return
-            return
-        
-        finally:
-            # Quit the ChromeDriver object
-            chrome_driver.quit()
-
-        show_debug(f"Fetched URL: {search_result.url}", importance = "LOW")
-
-        show_debug(f"Parsing content from URL: {search_result.url}", importance = "LOW")
-
         # Parse the page source with BeautifulSoup
-        soup: BeautifulSoup = BeautifulSoup(page_source, "html.parser")
+        soup: BeautifulSoup = BeautifulSoup(html_source, "html.parser")
 
         # Parse the content
         parsed_html: str = ""
@@ -724,8 +689,8 @@ class TavilySearch:
             for keyword in ["javascript", "cookie", "human", "enable", "verify", "err", "error"]:
                 if keyword in parsed_markdown.lower():
 
-                    show_debug(f"Found invalid keyword '{keyword}' (appeared {parsed_markdown.lower().count(keyword)} times) in parsed content from URL: {search_result.url}", importance = "LOW")
-                    show_debug(f"Entire parsed content from URL ('{search_result.url}'): {parsed_markdown.replace("\n", "\\n")}", importance = "LOW")
+                    show_debug(f"Found invalid keyword '{keyword}' (appeared {parsed_markdown.lower().count(keyword)} times) in parsed content from URL: {url}", importance = "LOW")
+                    show_debug(f"Entire parsed content from URL ('{url}'): {parsed_markdown.replace("\n", "\\n")}", importance = "LOW")
 
                     # Remove the parsed markdown
                     parsed_markdown = ""
@@ -735,6 +700,57 @@ class TavilySearch:
         if len(parsed_markdown) < 400:
             # Remove the parsed markdown
             parsed_markdown = ""
+    
+    def __parse(self, search_result: _SearchResult, search_results: list[_SearchResult], total_results: int = 0) -> None:
+        """
+        Fetch and parse the page source, extract the page content, store it in the page_content attribute of the search result and append it to the list of search results.
+
+        Args:
+            search_result (_SearchResult): The search result.
+            search_results (list[_SearchResult]): The list of search results.
+            total_results (int): The total number of results.
+
+        Returns:
+            None
+        """
+
+        # Create a chrome driver
+        chrome_driver: ChromeDriver = ChromeDriver()
+
+        # Process the parsing task
+        show_debug(f"Processing parsing task for URL: {search_result.url}", importance = "LOW")
+
+        # Load the url in the browser
+        show_debug(f"Loading URL: {search_result.url}", importance = "LOW")
+
+        # Load the URL
+        try:
+            chrome_driver.driver.get(search_result.url)
+
+            # Get the page source
+            page_source: str = chrome_driver.driver.page_source
+            
+        except Exception:
+            show_debug(f"Request timed out, returning empty content: {search_result.url}", type = "ERROR")
+
+            # Append the search result to the search results list
+            search_results.append(search_result)
+
+            show_debug(f"Finished parsing task {len(search_results)}/{total_results}")
+
+            # Return
+            return
+        
+        finally:
+            # Quit the ChromeDriver object
+            chrome_driver.quit()
+
+        show_debug(f"Fetched URL: {search_result.url}", importance = "LOW")
+
+        show_debug(f"Parsing content from URL: {search_result.url}", importance = "LOW")
+
+        # Parse the page source
+        parsed_markdown: str = self.__filter(page_source, search_result.url)        
 
         show_debug(f"Parsed content from URL: {search_result.url}, length: {len(parsed_markdown)}", importance = "LOW")
 
