@@ -9,6 +9,7 @@ This module implements the Summarizer Tool for summerizing the search results.
 import requests
 from typing import Any
 from SmartWebSearch.KeyCheck import KeyCheck
+from datetime import datetime
 
 # Summarizer Class
 class Summarizer:
@@ -84,7 +85,7 @@ class Summarizer:
         """
 
         # Create the prompt
-        prompt: str = """你是一个专业的AI研究助手，你的核心职责是根据用户提供的查询提示词“{prompt}”以及从网络搜索获取的资料“{data}”，严格遵循提示词的要求，准确、精炼地总结网络搜索结果。
+        prompt: str = """你是一个专业的AI研究助手，你的核心职责是根据用户提供的查询提示词“{prompt}”、从网络搜索获取的资料“{data}”以及今天的日期和時間“{datetime}”，严格遵循提示词的要求，准确、精炼地总结网络搜索结果。
 
         任务说明：
         - 理解用户意图：仔细阅读用户给出的提示词，明确用户希望获得什么样的总结——是简洁的要点概括、详细的分析报告、特定问题的答案，还是按照某种格式（如表格、列表）整理信息。
@@ -105,7 +106,7 @@ class Summarizer:
             [
                 {
                     "role": "user",
-                    "content": prompt.format(prompt = u_prompt, data = data)
+                    "content": prompt.format(prompt = u_prompt, data = data, datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 }
             ],
             self.model,
