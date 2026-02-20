@@ -131,7 +131,7 @@ class SmartWebSearch:
 
         if a_queries:
             # Search with auxiliary queries
-            results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries)
+            results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries, max_results_for_each = 10)
             src.append(results)
 
         # If the length of the search results content less than 80000, generate more queries with the summary

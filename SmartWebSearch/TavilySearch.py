@@ -700,6 +700,9 @@ class TavilySearch:
         if len(parsed_markdown) < 400:
             # Remove the parsed markdown
             parsed_markdown = ""
+
+        # Return the parsed markdown
+        return parsed_markdown
     
     def __parse(self, search_result: _SearchResult, search_results: list[_SearchResult], total_results: int = 0) -> None:
         """
