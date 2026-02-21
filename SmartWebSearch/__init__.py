@@ -34,10 +34,10 @@ __email__ = "jacksonlam.temp@gmail.com"
 __license__ = "MIT"
 
 # Print the URL of the package
-__url__ = "https://github.com/LittleWai07/smart-web-search-module"
+__url__ = "https://github.com/LittleWai07/smart-web-search-package"
 
 # Print the description of the package
-__description__ = "SmartWebSearch is a Python module that combines the Tavily search API with Retrieval-Augmented Generation (RAG), LLM-powered query expansion, and web content extraction to perform intelligent, deep web searches with automated summarization."
+__description__ = "SmartWebSearch is a Python package that combines the Tavily search API with Retrieval-Augmented Generation (RAG), LLM-powered query expansion, and web content extraction to perform intelligent, deep web searches with automated summarization."
 
 # SmartWebSearch class
 class SmartWebSearch:

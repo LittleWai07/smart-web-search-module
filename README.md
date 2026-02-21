@@ -1,11 +1,11 @@
-# Smart Web Search Module
+# Smart Web Search Package
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-SmartWebSearch is a Python module that combines the Tavily search API with Retrieval-Augmented Generation (RAG), LLM-powered query expansion, and web content extraction to perform intelligent, deep web searches with automated summarization.
+SmartWebSearch is a Python package that combines the Tavily search API with Retrieval-Augmented Generation (RAG), LLM-powered query expansion, and web content extraction to perform intelligent, deep web searches with automated summarization.
 
-## Module Version
+## Package Version
 - 1.1.1
 
 ## Features
@@ -18,10 +18,11 @@ SmartWebSearch is a Python module that combines the Tavily search API with Retri
 ## Environment
 - **Python 3.12 or above**
 - **Windows 11 Pro 64-bit** (macOS haven't tested)
-- **Python Modules** (requests, bs4, selenium, markdownify, tavily, numpy, sentence_transformers, langchain_text_splitters)
+- **Python Packages** (requests, bs4, selenium, markdownify, tavily, numpy, sentence_transformers, langchain_text_splitters)
 
 ## Installation
-- **Required Python Modules**: Install the required Python modules by command `pip install -r requirements.txt`
+- ****
+- **Required Python Packages**: Install the required Python packages by command `pip install -r requirements.txt`
 
 ## API Keys
 You need two API keys
@@ -47,7 +48,7 @@ SmartWebSearch
 An example of how to use the SmartWebSearch package.
 """
 
-# Import the SmartWebSearch module
+# Import the SmartWebSearch package
 import SmartWebSearch as sws
 
 # --------------------------------------------------------------------
@@ -83,7 +84,7 @@ print("\n=== Deep Search (full page content + RAG) ===")
 print(search.deepsearch(prompt))
 ```
 
-**Note**: The documentation of this module will be completed in the future.
+**Note**: The documentation of this package will be completed in the future.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
