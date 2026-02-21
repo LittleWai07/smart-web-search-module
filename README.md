@@ -15,6 +15,75 @@ SmartWebSearch is a Python module that combines the Tavily search API with Retri
 - 🔍 **RAG Pipeline** – Embeds documents with multilingual models (e.g., multilingual-e5-base) and retrieves context-aware chunks.
 - 📝 **Summarization** – Summarizes retrieved content using LLMs.
 
-**Note: The documentation of this module will be completed in the future.**
+## Environment
+- **Python 3.12 or above**
+- **Windows 11 Pro 64-bit** (macOS haven't tested)
+- **Python Modules** (requests, bs4, selenium, markdownify, tavily, numpy, sentence_transformers, langchain_text_splitters)
 
+## Installation
+- **Required Python Modules**: Install the required Python modules by command `pip install -r requirements.txt`
+
+## API Keys
+You need two API keys
+- **Tavily API key**: Sign up and get the API key [here](https://www.tavily.com) (1,000 free quotas per month)
+- **OpenAI Compatible API key**: eg., from [OpenAI](https://platform.openai.com/), [DeepSeek](https://platform.deepseek.com/), etc.
+
+## 🔒 Security Note
+
+For security reasons, **never hard-code your API keys directly in your source code**. 
+Instead, store them in environment variables, a `.env` file or a `*.json` file and load them into your program.
+
+## Quick Start
+Fill in the API keys and following required parameters manually.
+- **Tavily API Key**: The Tavily search API key (The key starts with `tvly-dev-`).
+- **OpenAI Compatible API Key**: The API key for the OpenAI Compatible API platform (The key usually starts with `sk-`).
+- **AI Model**: The id of the AI model used for summarization. (Default: `deepseek-chat`)
+- **OpenAI Compatible API Base URL**: The base url of the OpenAI Compatible API platform (The URL usually end with `/chat/completions`) (Default: `https://api.deepseek.com/chat/completions`)
+
+```python
+"""
+SmartWebSearch
+~~~~~~~~~~~~
+An example of how to use the SmartWebSearch package.
+"""
+
+# Import the SmartWebSearch module
+import SmartWebSearch as sws
+
+# --------------------------------------------------------------------
+# You can configure for different API providers by changing the 
+# model and base_url. Below are some examples:
+# --------------------------------------------------------------------
+
+# Example 1: Using DeepSeek (default)
+search = sws.SmartWebSearch(
+    "<Tavily API Key>",
+    "<OpenAI Compatible API Key>",
+    model="deepseek-chat",
+    openai_comp_api_base_url="https://api.deepseek.com/chat/completions"
+)
+
+# Example 2: Using OpenAI
+# search = sws.SmartWebSearch(
+#     "<Tavily API Key>",
+#     "<OpenAI Compatible API Key>",
+#     model="gpt-4-turbo-preview",
+#     openai_comp_api_base_url="https://api.openai.com/v1/chat/completions"
+# )
+
+# --------------------------------------------------------------------
+# Run a search
+# --------------------------------------------------------------------
+prompt = input("Enter a prompt: ")
+
+print("=== Normal Search (Tavily summaries) ===")
+print(search.search(prompt))
+
+print("\n=== Deep Search (full page content + RAG) ===")
+print(search.deepsearch(prompt))
+```
+
+**Note**: The documentation of this module will be completed in the future.
+
+## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
