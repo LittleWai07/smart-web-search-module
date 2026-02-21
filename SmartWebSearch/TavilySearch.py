@@ -592,9 +592,10 @@ class TavilySearch:
             show_debug(f"{len(search_results)} results parsed for query: {query}, total content length is {sum([ len(result.page_content.content) for result in search_results ])} characters")
 
         # Return the results
+
         return _SearchResults(
             query = query.replace(' ', '+'), # The query to search
-            summary = results["answer"], # The summary
+            summary = results["answer"] if results["answer"] else "", # The summary
             results = search_results
         )
     
@@ -790,8 +791,8 @@ class TavilySearch:
         )
 
         # Set the page content to the parsed markdown
-        # Get the first 80,000 characters of the parsed markdown only if parsed markdown has more than 80,000 characters
-        search_result.page_content.content = parsed_markdown[:80000]
+        # Get the first 80,000 characters of the parsed markdown only if parsed markdown has more than 100,000 characters
+        search_result.page_content.content = parsed_markdown[:100000]
         
         # Append the search result to the search results list
         search_results.append(search_result)

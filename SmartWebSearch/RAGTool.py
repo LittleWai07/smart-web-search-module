@@ -46,8 +46,8 @@ class _KnowledgeBase:
             list[tuple[float, str]]: The top matches with their scores and the corresponding chunks.
         """
 
-        # Encode the prompt into a vector
-        prompt_vector: np.ndarray = embedding_model.encode(prompt)
+        # Encode the prompt into a vector (added 'query' as a prefix)
+        prompt_vector: np.ndarray = embedding_model.encode(f"query: {prompt}")
 
         # Loop through the knowledge base and find the top matches
         matches: list[tuple[float, str]] = []
@@ -78,7 +78,7 @@ class _KnowledgeBaseSet:
         """
         self.knowledge_base_set: list[_KnowledgeBase] = knowledge_base_set
 
-    def match_knowledge(self, embedding_model: SentenceTransformer, prompt: str, top_k: int = 10, threshold_score: float = 0.57):
+    def match_knowledge(self, embedding_model: SentenceTransformer, prompt: str, top_k: int = 10, threshold_score: float = 0.82):
         """
         Match the prompt with the knowledge base set.
 
@@ -86,7 +86,7 @@ class _KnowledgeBaseSet:
             embedding_model (SentenceTransformer): The embedding model.
             prompt (str): The prompt to be matched.
             top_k (int) = 10: The number of top matches to return.
-            threshold_score (float) = 0.57: The threshold score for a match.
+            threshold_score (float) = 0.82: The threshold score for a match.
 
         Returns:
             list[tuple[float, str]]: The top matches with their scores and the corresponding chunks.
@@ -145,6 +145,9 @@ class RAGTool:
         # Remove the chunks includes verifying humans
         chunks: list[str] = [chunk for chunk in chunks if 'verify' not in chunk.lower() or 'human' not in chunk.lower()]
 
+        # Add prefix for each chunk
+        chunks: list[str] = [f"passage: {chunk}" for chunk in chunks]
+
         # Seperate the chunks into several chunk sets every 30 chunks
         chunk_sets: list[list[str]] = [chunks[i: i + 30] for i in range(0, len(chunks), 30)]
 
@@ -169,7 +172,7 @@ class RAGTool:
             timedelta: datetime.timedelta = end_time - start_time if end_time - start_time > timedelta else timedelta
 
             # Print the progress
-            show_debug(f"Created knowledge base set {idx}/{len(chunk_sets)} {f'(Expected completion time: {((datetime.datetime.now() + (timedelta) * (len(chunk_set) - idx)) + datetime.timedelta(minutes = 7)).strftime('%H:%M:%S')})...' if len(chunk_set) - idx > 0 else ''}")
+            show_debug(f"Created knowledge base set {idx}/{len(chunk_sets)} {f'(Expected completion time: {(datetime.datetime.now() + (timedelta) * (len(chunk_sets) - idx)).strftime('%H:%M:%S')})...' if len(chunk_sets) - idx > 0 else ''}")
         
         show_debug(f"Knowledge base set created.")
 
@@ -181,12 +184,12 @@ class RAGTool:
 
         return knowledge_base_set
 
-    def __init__(self, embedding_model_name: str = 'BAAI/bge-m3') -> None:
+    def __init__(self, embedding_model_name: str = 'intfloat/multilingual-e5-base') -> None:
         """
         Initialize the RAGTool object.
         
         Args:
-            embedding_model_name (str) = 'BAAI/bge-m3': The name of the embedding model.
+            embedding_model_name (str) = 'intfloat/multilingual-e5-base': The name of the embedding model.
         
         Returns:
             None
@@ -194,7 +197,7 @@ class RAGTool:
 
         # Initialize the text splitter
         self.text_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
-            chunk_size = 600,
+            chunk_size = 400,
             chunk_overlap = 50
         )
 
@@ -217,7 +220,7 @@ class RAGTool:
 
         return knowledge_base_set
 
-    def match_knowledge(self, knowledge_base: _KnowledgeBase | _KnowledgeBaseSet, prompt: str, top_k: int = 10, threshold_score: float = 0.6) -> list[tuple[float, str]]:
+    def match_knowledge(self, knowledge_base: _KnowledgeBase | _KnowledgeBaseSet, prompt: str, top_k: int = 10, threshold_score: float = 0.82) -> list[tuple[float, str]]:
         """
         Match the prompt with the knowledge base.
 
@@ -225,7 +228,7 @@ class RAGTool:
             knowledge_base (_KnowledgeBase | _KnowledgeBaseSet): The knowledge base.
             prompt (str): The prompt to be matched.
             top_k (int) = 10: The number of top matches to return.
-            threshold_score (float) = 0.6: The threshold score for the top matches.
+            threshold_score (float) = 0.82: The threshold score for the top matches.
 
         Returns:
             list[tuple[float, str]]: The top matches with their scores and the corresponding chunks.
