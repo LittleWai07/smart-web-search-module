@@ -140,17 +140,17 @@ class SmartWebSearch:
             aux_queries_list.append(a_queries)
 
             # Search with main query
-            results: _SearchResults | list[_SearchResult] = ts.search(m_query)
+            results: _SearchResults | list[_SearchResult] = ts.search(m_query, max_results = 15)
             summary = results.summary
             src.append(results)
 
             if a_queries:
                 # Search with auxiliary queries
-                results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries, max_results_for_each = 10)
+                results: _SearchResults | list[_SearchResult] = ts.search_d(m_query, a_queries, max_results_for_each = 15)
                 src.append(results)
 
-            # If the length of the search results content less than 80000, generate more queries with the summary
-            if len(src.to_str(False)) < 80000:
+            # If the length of the search results content less than 120,000, generate more queries with the summary
+            if len(src.to_str(False)) < 120000:
                 # Generate queries
                 a_queries: list[str] = self.qs.storm_with_summary(task, summary)
                 aux_queries_list.append(a_queries)
