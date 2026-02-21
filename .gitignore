@@ -5,3 +5,4 @@ debug-*
 /dist
 *.spec
 sws_config.json
+/sws_*.py
